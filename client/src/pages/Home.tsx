@@ -6,9 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Clock, FileText, Users, BarChart3, AlertCircle, CheckCircle, Download, Eye } from 'lucide-react';
+import { Clock, FileText, Users, BarChart3, AlertCircle, CheckCircle, Download, Eye, Settings } from 'lucide-react';
 import { InvoicePDFExport } from '@/components/InvoicePDFExport';
 import { BillOfCostsPDFExport } from '@/components/BillOfCostsPDFExport';
+import { FirmProfileManager } from '@/components/FirmProfileManager';
+import { CoverLetterGenerator } from '@/components/CoverLetterGenerator';
+import { useFirmProfile } from '@/contexts/FirmContext';
 
 interface TimeEntry {
   id: string;
@@ -74,6 +77,9 @@ export default function Home() {
   const [showTimeReview, setShowTimeReview] = useState(false);
   const [showInvoiceExport, setShowInvoiceExport] = useState(false);
   const [showBillOfCostsExport, setShowBillOfCostsExport] = useState(false);
+  const [showFirmProfile, setShowFirmProfile] = useState(false);
+  const [showCoverLetter, setShowCoverLetter] = useState(false);
+  const { firmProfile } = useFirmProfile();
 
   // Calculate totals
   const totals = useMemo(() => {
@@ -150,11 +156,24 @@ export default function Home() {
       <div className="bg-white border-b border-slate-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900">Tim Harmar Legal</h1>
-              <p className="text-slate-600">Practice Management System</p>
+            <div className="flex items-center gap-4">
+              {firmProfile?.logoBase64 && (
+                <div className="w-12 h-12 border rounded flex items-center justify-center bg-slate-50">
+                  <img
+                    src={firmProfile.logoBase64}
+                    alt="Firm logo"
+                    className="w-full h-full object-contain p-1"
+                  />
+                </div>
+              )}
+              <div>
+                <h1 className="text-3xl font-bold text-slate-900">
+                  {firmProfile?.firmName || 'Tim Harmar Legal'}
+                </h1>
+                <p className="text-slate-600">Practice Management System</p>
+              </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
               <Badge variant="outline" className="gap-1">
                 <Clock className="h-3 w-3" />
                 {totals.hours.toFixed(2)}h
@@ -163,6 +182,15 @@ export default function Home() {
                 <FileText className="h-3 w-3" />
                 ${totals.amount.toFixed(2)}
               </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowFirmProfile(true)}
+                className="gap-2"
+              >
+                <Settings className="h-4 w-4" />
+                {firmProfile ? 'Edit' : 'Setup'} Firm
+              </Button>
             </div>
           </div>
         </div>
@@ -419,13 +447,13 @@ export default function Home() {
                     <p className="text-slate-600">No time entries available for invoicing</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <Button
                       onClick={() => setShowBillOfCostsExport(true)}
                       className="h-20 flex flex-col items-center justify-center gap-2"
                     >
                       <FileText className="h-6 w-6" />
-                      <span>Generate Bill of Costs</span>
+                      <span>Bill of Costs</span>
                     </Button>
                     <Button
                       onClick={() => setShowInvoiceExport(true)}
@@ -434,6 +462,14 @@ export default function Home() {
                     >
                       <Download className="h-6 w-6" />
                       <span>Generate Invoice</span>
+                    </Button>
+                    <Button
+                      onClick={() => setShowCoverLetter(true)}
+                      variant="outline"
+                      className="h-20 flex flex-col items-center justify-center gap-2"
+                    >
+                      <FileText className="h-6 w-6" />
+                      <span>Cover Letter</span>
                     </Button>
                   </div>
                 )}
@@ -526,6 +562,17 @@ export default function Home() {
         matters={matters}
         isOpen={showBillOfCostsExport}
         onClose={() => setShowBillOfCostsExport(false)}
+      />
+      <FirmProfileManager
+        isOpen={showFirmProfile}
+        onClose={() => setShowFirmProfile(false)}
+      />
+      <CoverLetterGenerator
+        timeEntries={timeEntries}
+        clients={clients}
+        matters={matters}
+        isOpen={showCoverLetter}
+        onClose={() => setShowCoverLetter(false)}
       />
     </div>
   );
