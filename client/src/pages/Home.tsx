@@ -7,6 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Clock, FileText, Users, BarChart3, AlertCircle, CheckCircle, Download, Eye } from 'lucide-react';
+import { InvoicePDFExport } from '@/components/InvoicePDFExport';
+import { BillOfCostsPDFExport } from '@/components/BillOfCostsPDFExport';
 
 interface TimeEntry {
   id: string;
@@ -70,6 +72,8 @@ export default function Home() {
   const [minutes, setMinutes] = useState('');
   const [showBillOfCosts, setShowBillOfCosts] = useState(false);
   const [showTimeReview, setShowTimeReview] = useState(false);
+  const [showInvoiceExport, setShowInvoiceExport] = useState(false);
+  const [showBillOfCostsExport, setShowBillOfCostsExport] = useState(false);
 
   // Calculate totals
   const totals = useMemo(() => {
@@ -417,13 +421,14 @@ export default function Home() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Button
-                      onClick={() => setShowBillOfCosts(true)}
+                      onClick={() => setShowBillOfCostsExport(true)}
                       className="h-20 flex flex-col items-center justify-center gap-2"
                     >
                       <FileText className="h-6 w-6" />
                       <span>Generate Bill of Costs</span>
                     </Button>
                     <Button
+                      onClick={() => setShowInvoiceExport(true)}
                       variant="outline"
                       className="h-20 flex flex-col items-center justify-center gap-2"
                     >
@@ -506,6 +511,22 @@ export default function Home() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* PDF Export Dialogs */}
+      <InvoicePDFExport
+        timeEntries={timeEntries}
+        clients={clients}
+        matters={matters}
+        isOpen={showInvoiceExport}
+        onClose={() => setShowInvoiceExport(false)}
+      />
+      <BillOfCostsPDFExport
+        timeEntries={timeEntries}
+        clients={clients}
+        matters={matters}
+        isOpen={showBillOfCostsExport}
+        onClose={() => setShowBillOfCostsExport(false)}
+      />
     </div>
   );
 }
