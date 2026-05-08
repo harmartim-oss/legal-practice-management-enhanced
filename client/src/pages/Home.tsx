@@ -11,6 +11,8 @@ import { InvoicePDFExport } from '@/components/InvoicePDFExport';
 import { BillOfCostsPDFExport } from '@/components/BillOfCostsPDFExport';
 import { FirmProfileManager } from '@/components/FirmProfileManager';
 import { CoverLetterGenerator } from '@/components/CoverLetterGenerator';
+import { InvoicePreviewEditor } from '@/components/InvoicePreviewEditor';
+import { BillOfCostsPreviewEditor } from '@/components/BillOfCostsPreviewEditor';
 import { useFirmProfile } from '@/contexts/FirmContext';
 
 interface TimeEntry {
@@ -79,6 +81,8 @@ export default function Home() {
   const [showBillOfCostsExport, setShowBillOfCostsExport] = useState(false);
   const [showFirmProfile, setShowFirmProfile] = useState(false);
   const [showCoverLetter, setShowCoverLetter] = useState(false);
+  const [showInvoicePreview, setShowInvoicePreview] = useState(false);
+  const [showBillOfCostsPreview, setShowBillOfCostsPreview] = useState(false);
   const { firmProfile } = useFirmProfile();
 
   // Calculate totals
@@ -447,21 +451,21 @@ export default function Home() {
                     <p className="text-slate-600">No time entries available for invoicing</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <Button
-                      onClick={() => setShowBillOfCostsExport(true)}
+                      onClick={() => setShowInvoicePreview(true)}
                       className="h-20 flex flex-col items-center justify-center gap-2"
                     >
-                      <FileText className="h-6 w-6" />
-                      <span>Bill of Costs</span>
+                      <Eye className="h-6 w-6" />
+                      <span>Preview Invoice</span>
                     </Button>
                     <Button
-                      onClick={() => setShowInvoiceExport(true)}
+                      onClick={() => setShowBillOfCostsPreview(true)}
                       variant="outline"
                       className="h-20 flex flex-col items-center justify-center gap-2"
                     >
-                      <Download className="h-6 w-6" />
-                      <span>Generate Invoice</span>
+                      <Eye className="h-6 w-6" />
+                      <span>Preview Bill</span>
                     </Button>
                     <Button
                       onClick={() => setShowCoverLetter(true)}
@@ -470,6 +474,14 @@ export default function Home() {
                     >
                       <FileText className="h-6 w-6" />
                       <span>Cover Letter</span>
+                    </Button>
+                    <Button
+                      onClick={() => setShowInvoiceExport(true)}
+                      variant="outline"
+                      className="h-20 flex flex-col items-center justify-center gap-2"
+                    >
+                      <Download className="h-6 w-6" />
+                      <span>Quick Export</span>
                     </Button>
                   </div>
                 )}
@@ -562,6 +574,20 @@ export default function Home() {
         matters={matters}
         isOpen={showBillOfCostsExport}
         onClose={() => setShowBillOfCostsExport(false)}
+      />
+      <InvoicePreviewEditor
+        timeEntries={timeEntries}
+        clients={clients}
+        matters={matters}
+        isOpen={showInvoicePreview}
+        onClose={() => setShowInvoicePreview(false)}
+      />
+      <BillOfCostsPreviewEditor
+        timeEntries={timeEntries}
+        clients={clients}
+        matters={matters}
+        isOpen={showBillOfCostsPreview}
+        onClose={() => setShowBillOfCostsPreview(false)}
       />
       <FirmProfileManager
         isOpen={showFirmProfile}
