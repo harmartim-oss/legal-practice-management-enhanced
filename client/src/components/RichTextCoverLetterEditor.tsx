@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -86,13 +86,17 @@ export function RichTextCoverLetterEditor({
   const { firmProfile } = useFirmProfile();
   const client = clients.find(c => c.id === timeEntries[0]?.clientId);
   const [activeTab, setActiveTab] = useState('preview');
-  const [coverLetterContent, setCoverLetterContent] = useState(() => generateDefaultCoverLetter(client, matters, firmProfile));
+  const [coverLetterContent, setCoverLetterContent] = useState('<p>Loading...</p>');
   const [isExporting, setIsExporting] = useState(false);
 
   const subtotal = timeEntries.reduce((sum, e) => sum + e.amount, 0);
   const hst = subtotal * 0.13;
   const total = subtotal + hst;
 
+  // Initialize cover letter content when component mounts or when dependencies change
+  useEffect(() => {
+    setCoverLetterContent(generateDefaultCoverLetter(client, matters, firmProfile));
+  }, [client, matters, firmProfile]);
 
   const handleExportPDF = async () => {
     setIsExporting(true);
