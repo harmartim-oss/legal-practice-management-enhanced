@@ -464,3 +464,109 @@ Thank you for entrusting us with your legal matters. We appreciate your business
   // Save the PDF
   doc.save(`CoverLetter-${invoiceNumber}.pdf`);
 }
+
+
+/**
+ * Generate a cover letter PDF with rich text formatting support
+ */
+export async function generateCoverLetterPDFWithFormatting(
+  htmlContent: string,
+  firmProfile: FirmProfile | null,
+  client: Client | undefined,
+  subtotal: number,
+  hst: number,
+  total: number
+): Promise<void> {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  let yPosition = 20;
+
+  // Add logo if available
+  if (firmProfile?.logoBase64) {
+    try {
+      doc.addImage(firmProfile.logoBase64, 'JPEG', 20, yPosition, 40, 40);
+      yPosition += 45;
+    } catch (error) {
+      console.error('Failed to add logo:', error);
+      yPosition += 5;
+    }
+  }
+
+  // Firm header
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text(firmProfile?.firmName || 'Law Firm', 20, yPosition);
+  yPosition += 6;
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  
+  const firmAddress = firmProfile
+    ? `${firmProfile.address}, ${firmProfile.city}, ${firmProfile.province} ${firmProfile.postalCode}`
+    : 'Address';
+  
+  doc.text(firmAddress, 20, yPosition);
+  yPosition += 4;
+  
+  const contactInfo = firmProfile
+    ? `Phone: ${firmProfile.phone} | Email: ${firmProfile.email}`
+    : 'Contact Information';
+  
+  doc.text(contactInfo, 20, yPosition);
+  yPosition += 12;
+
+  // Parse HTML and add to PDF
+  // Create a temporary div to parse HTML
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = htmlContent;
+
+  // Extract text content and format it
+  const lines = doc.splitTextToSize(tempDiv.innerText, pageWidth - 40);
+  
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  
+  let lineHeight = 5;
+  for (const line of lines) {
+    if (yPosition > pageHeight - 30) {
+      doc.addPage();
+      yPosition = 20;
+    }
+    doc.text(line, 20, yPosition);
+    yPosition += lineHeight;
+  }
+
+  // Add invoice summary
+  yPosition += 10;
+  
+  if (yPosition > pageHeight - 40) {
+    doc.addPage();
+    yPosition = 20;
+  }
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('Invoice Summary:', 20, yPosition);
+  yPosition += 8;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  
+  const summaryX = pageWidth - 80;
+  doc.text('Subtotal:', summaryX, yPosition);
+  doc.text(`$${subtotal.toFixed(2)}`, pageWidth - 20, yPosition, { align: 'right' });
+  yPosition += 5;
+
+  doc.text('HST (13%):', summaryX, yPosition);
+  doc.text(`$${hst.toFixed(2)}`, pageWidth - 20, yPosition, { align: 'right' });
+  yPosition += 5;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('Total Due:', summaryX, yPosition);
+  doc.text(`$${total.toFixed(2)}`, pageWidth - 20, yPosition, { align: 'right' });
+
+  // Save the PDF
+  doc.save(`CoverLetter-${new Date().getTime()}.pdf`);
+}

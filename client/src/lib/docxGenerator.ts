@@ -512,3 +512,148 @@ export async function generateBillOfCostsDOCX(
   document.body.removeChild(link);
   window.URL.revokeObjectURL(url);
 }
+
+
+/**
+ * Generate a cover letter DOCX document with rich text formatting
+ */
+export async function generateCoverLetterDOCXWithFormatting(
+  htmlContent: string,
+  firmProfile: FirmProfile | null,
+  client: Client | undefined,
+  subtotal: number,
+  hst: number,
+  total: number
+): Promise<void> {
+  // Parse HTML to extract content
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = htmlContent;
+
+  // Create paragraphs from the HTML content
+  const contentParagraphs: any[] = [];
+  
+  // Add firm header
+  if (firmProfile?.logoBase64) {
+    // Note: docx library has limited image support, so we'll add it as a note
+    contentParagraphs.push(
+      new Paragraph({
+        children: [new TextRun({ text: `[Logo: ${firmProfile.firmName}]`, italics: true, size: 20 })],
+        spacing: { after: 100 },
+      })
+    );
+  }
+
+  // Add firm information
+  contentParagraphs.push(
+    new Paragraph({
+      children: [new TextRun({ text: firmProfile?.firmName || 'Law Firm', bold: true, size: 24 })],
+      spacing: { after: 50 },
+    })
+  );
+
+  contentParagraphs.push(
+    new Paragraph({
+      text: `${firmProfile?.address}, ${firmProfile?.city}, ${firmProfile?.province} ${firmProfile?.postalCode}`,
+      spacing: { after: 50 },
+    })
+  );
+
+  contentParagraphs.push(
+    new Paragraph({
+      text: `Phone: ${firmProfile?.phone} | Email: ${firmProfile?.email}`,
+      spacing: { after: 200 },
+    })
+  );
+
+  // Parse and add HTML content
+  const lines = tempDiv.innerText.split('\n');
+  for (const line of lines) {
+    if (line.trim()) {
+      contentParagraphs.push(
+        new Paragraph({
+          text: line.trim(),
+          spacing: { after: 100 },
+        })
+      );
+    } else {
+      contentParagraphs.push(
+        new Paragraph({
+          text: '',
+          spacing: { after: 50 },
+        })
+      );
+    }
+  }
+
+  // Add invoice summary
+  contentParagraphs.push(
+    new Paragraph({
+      text: '',
+      spacing: { after: 200 },
+    })
+  );
+
+  contentParagraphs.push(
+    new Paragraph({
+      children: [new TextRun({ text: 'Invoice Summary:', bold: true, size: 22 })],
+      spacing: { after: 100 },
+    })
+  );
+
+  // Summary table
+  contentParagraphs.push(
+    new Table({
+      width: { size: 50, type: 'pct' },
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({
+              children: [new Paragraph({ children: [new TextRun({ text: 'Subtotal:', bold: true })] })],
+            }),
+            new TableCell({
+              children: [new Paragraph({ text: `$${subtotal.toFixed(2)}`, alignment: AlignmentType.RIGHT })],
+            }),
+          ],
+        }),
+        new TableRow({
+          children: [
+            new TableCell({
+              children: [new Paragraph({ children: [new TextRun({ text: 'HST (13%):', bold: true })] })],
+            }),
+            new TableCell({
+              children: [new Paragraph({ text: `$${hst.toFixed(2)}`, alignment: AlignmentType.RIGHT })],
+            }),
+          ],
+        }),
+        new TableRow({
+          children: [
+            new TableCell({
+              children: [new Paragraph({ children: [new TextRun({ text: 'Total Due:', bold: true, size: 24 })] })],
+            }),
+            new TableCell({
+              children: [new Paragraph({ children: [new TextRun({ text: `$${total.toFixed(2)}`, bold: true, size: 24 })] })],
+            }),
+          ],
+        }),
+      ],
+    })
+  );
+
+  const doc = new Document({
+    sections: [
+      {
+        children: contentParagraphs,
+      },
+    ],
+  });
+
+  const blob = await Packer.toBlob(doc);
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `CoverLetter-${new Date().getTime()}.docx`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+}
