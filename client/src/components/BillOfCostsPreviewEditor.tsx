@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Download, FileText, Edit2, Eye } from 'lucide-react';
+import { Download, FileText, Edit2, Eye, Save } from 'lucide-react';
 import { useFirmProfile } from '@/contexts/FirmContext';
 import { generateBillOfCostsPDFWithFirm } from '@/lib/pdfGeneratorV2';
 import { generateBillOfCostsDOCX } from '@/lib/docxGenerator';
 import { toast } from 'sonner';
+import { saveDraft, generateDraftId, formatDraftTime, BillOfCostsDraft } from '@/lib/draftManager';
 
 interface TimeEntry {
   id: string;
@@ -63,11 +64,62 @@ export function BillOfCostsPreviewEditor({
   const [notes, setNotes] = useState('');
   const [isExporting, setIsExporting] = useState(false);
   const [activeTab, setActiveTab] = useState('preview');
+  const [lastSaved, setLastSaved] = useState<number | null>(null);
+  const draftIdRef = useRef<string>(generateDraftId('bill-of-costs'));
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const client = clients.find(c => c.id === timeEntries[0]?.clientId);
   const subtotal = timeEntries.reduce((sum, e) => sum + e.amount, 0);
   const hst = subtotal * 0.13;
   const total = subtotal + hst;
+
+  // Auto-save draft every 30 seconds
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const autoSave = () => {
+      const draft: BillOfCostsDraft = {
+        id: draftIdRef.current,
+        type: 'bill-of-costs',
+        billNumber,
+        additionalNotes: notes,
+        timeEntryIds: timeEntries.map(e => e.id),
+        clientId: client?.id || '',
+        savedAt: Date.now(),
+        lastModified: Date.now()
+      };
+      saveDraft(draft);
+      setLastSaved(Date.now());
+    };
+
+    // Save immediately when dialog opens
+    autoSave();
+
+    // Set up auto-save interval
+    autoSaveTimerRef.current = setInterval(autoSave, 30000);
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearInterval(autoSaveTimerRef.current);
+      }
+    };
+  }, [isOpen, billNumber, notes, timeEntries, client?.id]);
+
+  const handleSaveManually = () => {
+    const draft: BillOfCostsDraft = {
+      id: draftIdRef.current,
+      type: 'bill-of-costs',
+      billNumber,
+      additionalNotes: notes,
+      timeEntryIds: timeEntries.map(e => e.id),
+      clientId: client?.id || '',
+      savedAt: Date.now(),
+      lastModified: Date.now()
+    };
+    saveDraft(draft);
+    setLastSaved(Date.now());
+    toast.success('Bill of Costs draft saved');
+  };
 
   const handleExportPDF = async () => {
     setIsExporting(true);
@@ -101,10 +153,17 @@ export function BillOfCostsPreviewEditor({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Bill of Costs Preview & Editor
-          </DialogTitle>
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              <DialogTitle>Bill of Costs Preview & Editor</DialogTitle>
+            </div>
+            {lastSaved && (
+              <div className="text-xs text-slate-500">
+                Saved {formatDraftTime(lastSaved)}
+              </div>
+            )}
+          </div>
           <DialogDescription>
             Review and customize your bill of costs (Ontario Form 57A) before downloading
           </DialogDescription>
@@ -275,6 +334,14 @@ export function BillOfCostsPreviewEditor({
         <div className="flex gap-2 justify-end border-t pt-4">
           <Button variant="outline" onClick={onClose}>
             Cancel
+          </Button>
+          <Button
+            onClick={handleSaveManually}
+            variant="outline"
+            className="gap-2"
+          >
+            <Save className="h-4 w-4" />
+            Save Draft
           </Button>
           <Button
             onClick={handleExportPDF}

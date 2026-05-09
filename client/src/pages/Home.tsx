@@ -6,14 +6,16 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Clock, FileText, Users, BarChart3, AlertCircle, CheckCircle, Download, Eye, Settings } from 'lucide-react';
+import { Clock, FileText, Users, BarChart3, AlertCircle, CheckCircle, Download, Eye, Settings, RotateCcw } from 'lucide-react';
 import { InvoicePDFExport } from '@/components/InvoicePDFExport';
 import { BillOfCostsPDFExport } from '@/components/BillOfCostsPDFExport';
 import { FirmProfileManager } from '@/components/FirmProfileManager';
 import { CoverLetterGenerator } from '@/components/CoverLetterGenerator';
 import { InvoicePreviewEditor } from '@/components/InvoicePreviewEditor';
 import { BillOfCostsPreviewEditor } from '@/components/BillOfCostsPreviewEditor';
+import { DraftRestoration } from '@/components/DraftRestoration';
 import { useFirmProfile } from '@/contexts/FirmContext';
+import { Draft } from '@/lib/draftManager';
 
 interface TimeEntry {
   id: string;
@@ -83,6 +85,7 @@ export default function Home() {
   const [showCoverLetter, setShowCoverLetter] = useState(false);
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
   const [showBillOfCostsPreview, setShowBillOfCostsPreview] = useState(false);
+  const [showDraftRestoration, setShowDraftRestoration] = useState(false);
   const { firmProfile } = useFirmProfile();
 
   // Calculate totals
@@ -149,6 +152,23 @@ export default function Home() {
     return clients.find(c => c.id === clientId)?.name || 'Unknown';
   };
 
+  // Handle draft restoration
+  const handleRestoreDraft = (draft: Draft) => {
+    if (draft.type === 'invoice') {
+      const invoiceDraft = draft as any;
+      // Restore invoice draft - in a real app, you'd load the time entries
+      setShowInvoicePreview(true);
+    } else if (draft.type === 'bill-of-costs') {
+      const billDraft = draft as any;
+      // Restore bill draft
+      setShowBillOfCostsPreview(true);
+    } else if (draft.type === 'cover-letter') {
+      const letterDraft = draft as any;
+      // Restore cover letter draft
+      setShowCoverLetter(true);
+    }
+  };
+
   // Get matter name
   const getMatterName = (matterId: string) => {
     return matters.find(m => m.id === matterId)?.name || 'General';
@@ -186,6 +206,15 @@ export default function Home() {
                 <FileText className="h-3 w-3" />
                 ${totals.amount.toFixed(2)}
               </Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDraftRestoration(true)}
+                className="gap-2"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Drafts
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"
@@ -599,6 +628,11 @@ export default function Home() {
         matters={matters}
         isOpen={showCoverLetter}
         onClose={() => setShowCoverLetter(false)}
+      />
+      <DraftRestoration
+        isOpen={showDraftRestoration}
+        onClose={() => setShowDraftRestoration(false)}
+        onRestoreDraft={handleRestoreDraft}
       />
     </div>
   );

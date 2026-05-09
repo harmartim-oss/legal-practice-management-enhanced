@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Download, Eye, Edit2, FileText } from 'lucide-react';
+import { Download, Eye, Edit2, FileText, Save } from 'lucide-react';
 import { useFirmProfile } from '@/contexts/FirmContext';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { toast } from 'sonner';
+import { saveDraft, generateDraftId, formatDraftTime, CoverLetterDraft } from '@/lib/draftManager';
 
 interface TimeEntry {
   id: string;
@@ -88,6 +89,9 @@ export function RichTextCoverLetterEditor({
   const [activeTab, setActiveTab] = useState('preview');
   const [coverLetterContent, setCoverLetterContent] = useState('<p>Loading...</p>');
   const [isExporting, setIsExporting] = useState(false);
+  const [lastSaved, setLastSaved] = useState<number | null>(null);
+  const draftIdRef = useRef<string>(generateDraftId('cover-letter'));
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const subtotal = timeEntries.reduce((sum, e) => sum + e.amount, 0);
   const hst = subtotal * 0.13;
@@ -97,6 +101,37 @@ export function RichTextCoverLetterEditor({
   useEffect(() => {
     setCoverLetterContent(generateDefaultCoverLetter(client, matters, firmProfile));
   }, [client, matters, firmProfile]);
+
+  // Auto-save draft every 30 seconds
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const autoSave = () => {
+      const draft: CoverLetterDraft = {
+        id: draftIdRef.current,
+        type: 'cover-letter',
+        content: coverLetterContent,
+        clientId: client?.id || '',
+        timeEntryIds: timeEntries.map(e => e.id),
+        savedAt: Date.now(),
+        lastModified: Date.now()
+      };
+      saveDraft(draft);
+      setLastSaved(Date.now());
+    };
+
+    // Save immediately when dialog opens
+    autoSave();
+
+    // Set up auto-save interval
+    autoSaveTimerRef.current = setInterval(autoSave, 30000);
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearInterval(autoSaveTimerRef.current);
+      }
+    };
+  }, [isOpen, coverLetterContent, timeEntries, client?.id]);
 
   const handleExportPDF = async () => {
     setIsExporting(true);
@@ -142,6 +177,21 @@ export function RichTextCoverLetterEditor({
     }
   };
 
+  const handleSaveManually = () => {
+    const draft: CoverLetterDraft = {
+      id: draftIdRef.current,
+      type: 'cover-letter',
+      content: coverLetterContent,
+      clientId: client?.id || '',
+      timeEntryIds: timeEntries.map(e => e.id),
+      savedAt: Date.now(),
+      lastModified: Date.now()
+    };
+    saveDraft(draft);
+    setLastSaved(Date.now());
+    toast.success('Cover letter draft saved');
+  };
+
   const handleReset = () => {
     setCoverLetterContent(generateDefaultCoverLetter(client, matters, firmProfile));
     toast.info('Cover letter reset to default');
@@ -151,10 +201,17 @@ export function RichTextCoverLetterEditor({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Cover Letter Editor
-          </DialogTitle>
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              <DialogTitle>Cover Letter Editor</DialogTitle>
+            </div>
+            {lastSaved && (
+              <div className="text-xs text-slate-500">
+                Saved {formatDraftTime(lastSaved)}
+              </div>
+            )}
+          </div>
           <DialogDescription>
             Customize your cover letter with rich text formatting before exporting
           </DialogDescription>
@@ -227,13 +284,15 @@ export function RichTextCoverLetterEditor({
             <div className="space-y-3">
               <div className="flex gap-2 justify-between items-center">
                 <label className="text-sm font-medium">Cover Letter Content</label>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleReset}
-                >
-                  Reset to Default
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleReset}
+                  >
+                    Reset to Default
+                  </Button>
+                </div>
               </div>
 
               <div className="border rounded-lg overflow-hidden">
@@ -286,6 +345,14 @@ export function RichTextCoverLetterEditor({
         <div className="flex gap-2 justify-end border-t pt-4">
           <Button variant="outline" onClick={onClose}>
             Cancel
+          </Button>
+          <Button
+            onClick={handleSaveManually}
+            variant="outline"
+            className="gap-2"
+          >
+            <Save className="h-4 w-4" />
+            Save Draft
           </Button>
           <Button
             onClick={handleExportPDF}
