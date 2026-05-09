@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Clock, FileText, Users, BarChart3, AlertCircle, CheckCircle, Download, Eye, Settings, RotateCcw } from 'lucide-react';
+import { Clock, FileText, Users, BarChart3, AlertCircle, CheckCircle, Download, Eye, Settings, RotateCcw, DollarSign } from 'lucide-react';
 import { InvoicePDFExport } from '@/components/InvoicePDFExport';
 import { BillOfCostsPDFExport } from '@/components/BillOfCostsPDFExport';
 import { FirmProfileManager } from '@/components/FirmProfileManager';
@@ -14,6 +14,8 @@ import { CoverLetterGenerator } from '@/components/CoverLetterGenerator';
 import { InvoicePreviewEditor } from '@/components/InvoicePreviewEditor';
 import { BillOfCostsPreviewEditor } from '@/components/BillOfCostsPreviewEditor';
 import { DraftRestoration } from '@/components/DraftRestoration';
+import { TimekeeperManager } from '@/components/TimekeeperManager';
+import { ExpenseManager } from '@/components/ExpenseManager';
 import { useFirmProfile } from '@/contexts/FirmContext';
 import { Draft } from '@/lib/draftManager';
 
@@ -86,6 +88,8 @@ export default function Home() {
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
   const [showBillOfCostsPreview, setShowBillOfCostsPreview] = useState(false);
   const [showDraftRestoration, setShowDraftRestoration] = useState(false);
+  const [showTimekeeperManager, setShowTimekeeperManager] = useState(false);
+  const [showExpenseManager, setShowExpenseManager] = useState(false);
   const { firmProfile } = useFirmProfile();
 
   // Calculate totals
@@ -206,6 +210,15 @@ export default function Home() {
                 <FileText className="h-3 w-3" />
                 ${totals.amount.toFixed(2)}
               </Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowTimekeeperManager(true)}
+                className="gap-2"
+              >
+                <Users className="h-4 w-4" />
+                Timekeepers
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -634,6 +647,18 @@ export default function Home() {
         onClose={() => setShowDraftRestoration(false)}
         onRestoreDraft={handleRestoreDraft}
       />
+      <TimekeeperManager
+        isOpen={showTimekeeperManager}
+        onClose={() => setShowTimekeeperManager(false)}
+      />
+      {selectedClient && selectedMatter && (
+        <ExpenseManager
+          matterId={selectedMatter}
+          clientId={selectedClient}
+          isOpen={showExpenseManager}
+          onClose={() => setShowExpenseManager(false)}
+        />
+      )}
     </div>
   );
 }
